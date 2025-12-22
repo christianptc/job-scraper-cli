@@ -1,0 +1,15 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# SQLite databases
+*.db
+
+# macOS system files
+.DS_Store
+
+# Optional: Python egg info / build files
+*.egg-info/

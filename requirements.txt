@@ -1,0 +1,3 @@
+eautifulsoup4
+requests
+rich

@@ -1,7 +1,7 @@
 # Library import
 import sys
 from datetime import datetime
-
+from typing import List, Dict
 # Modules import
 from modules import cli
 from modules import db_handler
@@ -43,7 +43,7 @@ class InternshipCLI:
                 self._process_command(user_input)
             except KeyboardInterrupt:
                 self.console.print("Interrupted", style="red")
-                self.handle_quit
+                self.handle_quit()
             except Exception as e:
                 self.console.print(f"An unexpected error occured: {e}", style="red")
 
@@ -88,18 +88,28 @@ class InternshipCLI:
 
         if target == ".":
             # Fetch data
-            internships = db_handler.get_all_internships()
+            internships, error = db_handler.get_all_internships()
+
+            if error is not None:
+                self.console.print(f"Error: {error}")
+                return
 
             if not internships:
                 self.console.print("No internship was found. Try [white]'scrape'[/white] first!", style="yellow")
                 return
             
             table = self._build_table(internships, title="All Internships")
+            self.console.print(table)
 
         else:
-            internship = db_handler.get_internship_by_id(target)
-
-            if not internship:
+            internship, error = db_handler.get_internship_by_id(target)
+            print(internship)
+            print(error)
+            if error is not None:
+                self.console.print(f"Error: {error}")
+                return 
+            
+            if not internship or internship == [None]:
                 self.console.print(f"Internship with ID {target} not found.", style="red")
                 return
             
@@ -115,14 +125,15 @@ class InternshipCLI:
         table.add_column("Company", style="bold white")
         table.add_column("Position")
         table.add_column("Location")
-        table.add_column("Link", style="blue u")
+        table.add_column("Link", justify="center", style="blue u")
         table.add_column("Tech Stack")
         table.add_column("Date", justify="center")
         table.add_column("Status", justify="right")
 
+        # print(data)
         for row in data:
             id, company_name, position, location, link, tech_stack, date_posted, status = row
-
+            # print(id)
             status_style = self._get_status_color(status)
 
             table.add_row(
@@ -141,16 +152,17 @@ class InternshipCLI:
     def _get_status_color(self, status):
         status = status.lower()
 
-        if status == "offer":
-            return "green"
-        elif status == "rejected":
-            return "red"
-        elif status == "interview":
-            return "magenta"
-        elif status == "applied":
-            return "cyan"
-        else:
-            return "yellow"
+        statuscolor: Dict[str, str] = {
+            "offer": "green",
+            "rejected": "red",
+            "interview": "magenta",
+            "applied": "cyan",
+            "fetched": "white",
+        }
+        if status in statuscolor:
+            return statuscolor[status]
+        else: 
+            return "dark_olive_green1"
         
 
     def handle_update(self, args: List[str]):
@@ -161,9 +173,9 @@ class InternshipCLI:
         internship_id, new_status = args[0], args[1]
 
         success = db_handler.update_status(internship_id, new_status)
-        
+        print(success)
         if success:
-            self.console.print(f"Updating ID {internship_id} to status '{new_status}'...", style="bold green")
+            self.console.print(f"Updating ID {internship_id} to status '{new_status}'..", style="bold green")
             pass
         else:
             self.console.print(f"Error: Internship with ID {internship_id} not found.", style="bold red")
@@ -171,7 +183,9 @@ class InternshipCLI:
     
     def handle_scrape(self):
         self.console.print("Starting scraper...", style="cyan")
+
         success = db_handler.scrape()
+
         self.console.print(f"Successfully fetched {success} internships.", style="bold green")
         pass
     
@@ -179,44 +193,3 @@ class InternshipCLI:
 if __name__ == "__main__":
     app = InternshipCLI()
     app.start()
-        
-# console = Console()
-# def main():
-#     # welcome message
-#     console.print()
-#     db_handler.table_create()
-#     console.print(
-#             "Welcome to internship tracker, type [green]help[/green] for commands ([red]quit[/red] to stop)",
-#             style="bold u white",
-#             highlight=False
-#         )
-    
-#     while True:
-#         command = input("> ").strip()
-#         if command.lower() in ["exit", "quit", "q", "stop"]:
-#             console.print("Exiting program...", style="bold red")
-#             sys.exit()
-#         elif command.lower() == "list .":
-#             pass
-#         elif command.lower().startswith("list "):
-#             try:
-#                 _, internship_id = command.split()
-#             except ValueError:
-#                 console.print("[red]Try list <id>[/red]")
-#         elif command.lower().startswith("update "):
-#             try:
-#                 _. internship_id, internship_status = command.split()
-#             except ValueError:
-#                 console.print("[red]Try update <id> <new_status>[/red]")
-#         elif command.lower() == "scrape":
-#             pass
-#         elif command.lower() == "help":
-#             console.print("Available commands:", style="bold u bright_yellow")
-#             console.print("[white]'list .'[/white] -- lists all interships stored", style="yellow")
-#             console.print("[white]'list <id>'[/white] -- gets information about specific internship", style="yellow")
-#             console.print("[white]'update <id> <new_status>'[/white] -- updates current status of specific internship", style="yellow")
-#             console.print("[white]'scrape'[/white] -- gets newly posted internships", style="yellow")
-#         else:
-#             console.print("Unknown command.", style="yellow")
-# if __name__ == "__main__":
-#     main()

@@ -1,5 +1,7 @@
 from pathlib import Path
 import sqlite3
+from typing import List
+
 
 # Path to database file
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -8,7 +10,8 @@ DB_PATH = BASE_DIR / "test.db"
 def table_create():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-
+    global idCount
+    idCount = 1
     tablename = "internships"
     command = "CREATE TABLE IF NOT EXISTS"
     fieldslist = (
@@ -28,9 +31,54 @@ def table_create():
     conn.close()
 
 
-def get_all_internships():
+def add_internship():
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            sql = "INSERT INTO internships(id, company_name, position, location, link, tech_stack, date_posted) VALUES(?, ?, ?, ?, ?, ?, ?)"
+            data = (1, "HAW Kiel", "Student", "Kiel", "https://www.haw-kiel.de", None, "23.12.2025")
+            cur.execute(sql, data)
+            conn.commit()
+    except sqlite3.Error as e:
+        print(e)
+        return e
+
+def get_all_internships() -> List[tuple]:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT * FROM internships')
+            rowData: List[tuple] = cur.fetchall()
+
+            return rowData, None
+    except sqlite3.Error as e:
+        return [], e
+
+
+def get_internship_by_id(targetID) -> tuple:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            # cur.execute('SELECT * FROM internships')
+            cur.execute('SELECT * FROM internships WHERE id =?', (targetID,))
+            rowData: tuple = cur.fetchone()
+            return [rowData], None
+    except sqlite3.OperationalError as e:
+        # print(e)
+        return [], e
+
+def update_status(internship_id, new_status):
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE internships SET status=? WHERE id=?", (new_status, internship_id))
+            conn.commit()
+    except sqlite3.OperationalError as e:
+        print(e)
+
+def scrape():
     return 0
 
 
-def get_internship_by_id(targetID):
-    return 0
+add_internship()
+print("added")

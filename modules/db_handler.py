@@ -7,11 +7,11 @@ from typing import List
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "test.db"
 
+idCount = 0
+
 def table_create():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    global idCount
-    idCount = 1
     tablename = "internships"
     command = "CREATE TABLE IF NOT EXISTS"
     fieldslist = (
@@ -25,7 +25,6 @@ def table_create():
         "status TEXT NOT NULL DEFAULT 'fetched'"       
    )
     fields = ",".join(fieldslist)
-
     cur.execute(f"{command} {tablename} ({fields})")
     conn.commit()
     conn.close()
@@ -35,8 +34,13 @@ def add_internship():
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            sql = "INSERT INTO internships(id, company_name, position, location, link, tech_stack, date_posted) VALUES(?, ?, ?, ?, ?, ?, ?)"
-            data = (1, "HAW Kiel", "Student", "Kiel", "https://www.haw-kiel.de", None, "23.12.2025")
+            cur.execute("SELECT MAX(id) FROM internships")
+            maxID = cur.fetchone()[0]
+            if maxID is not None:
+                idCount = maxID + 1
+            print(f"idcount == {idCount}")
+            sql = "INSERT INTO internships(id, company_name, position, location, link, date_posted) VALUES(?, ?, ?, ?, ?, ?)"
+            data = (idCount, "CAU Kiel", "Student", "Kiel", "https://www.test2.de", "23.12.2025")
             cur.execute(sql, data)
             conn.commit()
     except sqlite3.Error as e:
@@ -47,7 +51,7 @@ def get_all_internships() -> List[tuple]:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute('SELECT * FROM internships')
+            cur.execute('SELECT * FROM internships ORDER BY id DESC')
             rowData: List[tuple] = cur.fetchall()
 
             return rowData, None
@@ -76,9 +80,5 @@ def update_status(internship_id, new_status):
     except sqlite3.OperationalError as e:
         print(e)
 
-def scrape():
-    return 0
-
-
-add_internship()
-print("added")
+# add_internship()
+# print("added")

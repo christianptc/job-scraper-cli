@@ -49,7 +49,7 @@ class InternshipCLI:
 
     def _process_command(self, user_input: str):
         parts = user_input.split()
-        command_name = parts[0]
+        command_name = parts[0].lower()
         args = parts[1:]
 
         if command_name in self.commands:
@@ -60,7 +60,7 @@ class InternshipCLI:
     
     def handle_quit(self, args: List[str] = None):
         # Exits the program
-        self.console.print("Exiting program...", style="red bold u")
+        self.console.print("Exiting program..", style="red bold u")
         sys.exit()
 
     
@@ -95,6 +95,7 @@ class InternshipCLI:
                 return
 
             if not internships:
+                table = self._build_table([], title="All Internships")
                 self.console.print("No internship was found. Try [white]'scrape'[/white] first!", style="yellow")
                 return
             
@@ -181,13 +182,12 @@ class InternshipCLI:
             self.console.print(f"Error: Internship with ID {internship_id} not found.", style="bold red")
             pass
     
-    def handle_scrape(self):
-        self.console.print("Starting scraper...", style="cyan")
+    def handle_scrape(self, args: List[str]):
+        self.console.print("Starting scraper..", style="cyan")
 
-        success = db_handler.scrape()
+        scraper.run()
 
-        self.console.print(f"Successfully fetched {success} internships.", style="bold green")
-        pass
+        # self.console.print(f"Successfully fetched {success} internships.", style="bold green")
     
 
 if __name__ == "__main__":

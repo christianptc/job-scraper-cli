@@ -5,6 +5,8 @@ from typing import List
 
 # Path to database file
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Create a .db file in the main directory and put it's name in here instead of 'test.db'
 DB_PATH = BASE_DIR / "test.db"
 
 idCount = 0
@@ -40,7 +42,7 @@ def add_internship():
                 idCount = maxID + 1
             print(f"idcount == {idCount}")
             sql = "INSERT INTO internships(id, company_name, position, location, link, date_posted) VALUES(?, ?, ?, ?, ?, ?)"
-            data = (idCount, "CAU Kiel", "Student", "Kiel", "https://www.test2.de", "23.12.2025")
+            data = (idCount, "test", "test", "test", "https://www.test2.de", "25.12.2025")
             cur.execute(sql, data)
             conn.commit()
     except sqlite3.Error as e:

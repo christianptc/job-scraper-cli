@@ -1,9 +1,7 @@
 # Library import
 import sys
-from datetime import datetime
 from typing import List, Dict
 # Modules import
-from modules import cli
 from modules import db_handler
 from modules import scraper
 
@@ -22,6 +20,14 @@ class InternshipCLI:
             "update": self.handle_update,
             "scrape": self.handle_scrape,
             "quit": self.handle_quit,
+        }
+        self.statuscolor: Dict[str, str] = {
+            "offer": "green",
+            "rejected": "red",
+            "interview": "magenta",
+            "applied": "cyan",
+            "read": "yellow",
+            "fetched": "white"
         }
     
     def start(self):
@@ -96,6 +102,7 @@ class InternshipCLI:
 
             if not internships:
                 table = self._build_table([], title="All Internships")
+                self.console.print(table)
                 self.console.print("No internship was found. Try [white]'scrape'[/white] first!", style="yellow")
                 return
             
@@ -104,8 +111,8 @@ class InternshipCLI:
 
         else:
             internship, error = db_handler.get_internship_by_id(target)
-            print(internship)
-            print(error)
+            # print(internship)
+            # print(error)
             if error is not None:
                 self.console.print(f"Error: {error}")
                 return 
@@ -120,22 +127,21 @@ class InternshipCLI:
 
     
     def _build_table(self, data: List[tuple], title: str) -> Table:
-        table = Table(title=title, box=box.ROUNDED, show_header=True, header_style="bold cyan")
+        table = Table(title=title, box=box.ROUNDED, show_header=True, show_lines=True, header_style="bold cyan")
 
         table.add_column("ID", justify="center", style="dim white")
         table.add_column("Company", style="bold white")
         table.add_column("Position")
-        table.add_column("Location")
+        table.add_column("Location", justify="center")
         table.add_column("Link", justify="center", style="blue u")
-        table.add_column("Tech Stack")
         table.add_column("Date", justify="center")
         table.add_column("Status", justify="right")
 
         # print(data)
         for row in data:
-            id, company_name, position, location, link, tech_stack, date_posted, status = row
+            id, company_name, position, location, link, date_posted, status = row
             # print(id)
-            status_style = self._get_status_color(status)
+            status_style = self.statuscolor[status]
 
             table.add_row(
                 str(id),
@@ -143,7 +149,6 @@ class InternshipCLI:
                 position,
                 location,
                 link,
-                tech_stack,
                 date_posted,
                 f"[{status_style}]{status}[/{status_style}]"
             )
@@ -153,39 +158,43 @@ class InternshipCLI:
     def _get_status_color(self, status):
         status = status.lower()
 
-        statuscolor: Dict[str, str] = {
-            "offer": "green",
-            "rejected": "red",
-            "interview": "magenta",
-            "applied": "cyan",
-            "fetched": "white",
-        }
-        if status in statuscolor:
-            return statuscolor[status]
-        else: 
-            return "dark_olive_green1"
+        if status in self.statuscolor:
+            return self.statuscolor[status]
         
 
     def handle_update(self, args: List[str]):
         if len(args) != 2:
-            self.console.print("Usage: [white]'update <id> <new_status>'[/white]", style="red")
+            self.console.print("Usage: [white]'update <id> <offer / rejected / interview / applied / fetched>'[/white]", style="red")
             return
 
         internship_id, new_status = args[0], args[1]
 
-        success = db_handler.update_status(internship_id, new_status)
-        print(success)
-        if success:
+        if args[1].lower() not in self.statuscolor:
+            self.console.print("Usage: [white]'update <id> <offer / rejected / interview / applied / fetched>'[/white]", style="red")
+            return
+
+        
+        
+        maxID = db_handler.update_check()
+        # print(maxID)
+        if int(internship_id) <= int(maxID):
+            db_handler.update_status(internship_id, new_status)
             self.console.print(f"Updating ID {internship_id} to status '{new_status}'..", style="bold green")
-            pass
         else:
             self.console.print(f"Error: Internship with ID {internship_id} not found.", style="bold red")
-            pass
+
+        return
     
     def handle_scrape(self, args: List[str]):
         self.console.print("Starting scraper..", style="cyan")
+        
+        found_jobs, new_jobs = scraper.get_jobs_raw()
 
-        scraper.run()
+        if found_jobs > 0:
+            self.console.print(f"Found {found_jobs} jobs -- {new_jobs} were added to the database ", style="green")
+        else:
+            self.console.print(f"No jobs were found -- try again later..", style="green")
+
 
         # self.console.print(f"Successfully fetched {success} internships.", style="bold green")
     

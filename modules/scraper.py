@@ -1,31 +1,38 @@
 import requests
-from bs4 import BeautifulSoup
-import math
+from . import db_handler
 
-# from modules.db_handler import add_internship
+def get_jobs_raw():
+    url = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobs"
+    headers = {"X-API-Key": "jobboerse-jobsuche"}
 
-def run():    
-    #test url
-    targetURL = "https://www.linkedin.com/jobs/search/?currentJobId=4346263386&origin=JOBS_HOME_JYMBII"
-    session = requests.Session()
-    session.headers.update({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"})
+    # Change SEARCH and LOCATION if you want to use this for your own job search
+    params = {
+        "was": "Werkstudent Software", # change "Werkstudent" with what you want to search for
+        "wo": "Kiel", # change "Kiel" with the region your prefered region
+        "umkreis": 50,
+        "page": 1,
+        "size": 50,
+        "sortierung" : "datum"
+    }
+
+    response = requests.get(url, params=params, headers=headers)
+
+    data = response.json()
+    raw_jobs = data.get('stellenangebote', [])
+    # print(raw_jobs)
+    total_new_jobs = 0
+    for job in raw_jobs:
+        ref_nr = job.get('refnr', None)
+        company_name = job.get('arbeitgeber', None)
+        position = job.get('beruf', job.get('titel', None))
+        location = job.get('arbeitsort', {}).get('ort', None)
+        link = job.get('externeUrl', f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{ref_nr}")
+        date_posted = job.get('aktuelleVeroeffentlichungsdatum', None)
+        
+        check = db_handler.add_internship(company_name, position, location, link, date_posted)
+        if check:
+            total_new_jobs += 1
+
+    return len(raw_jobs), total_new_jobs
     
-    res = session.get(targetURL)
-    soup = BeautifulSoup(res.text, 'html.parser')
-
-    element = soup.find("span", class_="results-context-header__job-count")
-    # joblist = soup.find("span", id_="ember173")
-    total_jobs_found = int("".join([_ for _ in element]).replace(",","").replace("+",""))
-    print(total_jobs_found)
-    # 25 jobs are listed at a time per page so we have to iterate through 25 listings at a time, if we divide 25 by the total number of jobs found (total_jobs_found) we get how many pages we have in total
-    page_loops = math.ceil(total_jobs_found/25)
-    # for i in range(page_loops):
-    # jobs_on_page = soup.find_all("li") 
-
-    # for j in range(len(jobs_on_page)):
-        # jobid = jobs_on_page[j].get("data-occludable-job-id")
-        # if jobid is not None:
-            # print(jobid)
-
-
-run()
+# get_jobs_raw()

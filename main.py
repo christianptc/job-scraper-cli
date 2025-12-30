@@ -14,7 +14,7 @@ class InternshipCLI:
     def __init__(self):
         self.console = Console()
         # Map command strings to methods
-        self.commands: Dict[str, Callable] = {
+        self.commands: Dict[str, callable] = {
             "help": self.handle_help,
             "list": self.handle_list,
             "update": self.handle_update,
@@ -148,7 +148,7 @@ class InternshipCLI:
                 company_name,
                 position,
                 location,
-                link,
+                f"[link={link}]LINK[/link]",
                 date_posted,
                 f"[{status_style}]{status}[/{status_style}]"
             )

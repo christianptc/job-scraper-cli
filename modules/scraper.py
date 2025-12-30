@@ -7,7 +7,7 @@ def get_jobs_raw():
 
     # Change SEARCH and LOCATION if you want to use this for your own job search
     params = {
-        "was": "Werkstudent Software", # change "Werkstudent" with what you want to search for
+        "was": "Entwickler", # change "Werkstudent Entwickler" with what you want to search for
         "wo": "Kiel", # change "Kiel" with the region your prefered region
         "umkreis": 50,
         "page": 1,
@@ -24,7 +24,7 @@ def get_jobs_raw():
     for job in raw_jobs:
         ref_nr = job.get('refnr', None)
         company_name = job.get('arbeitgeber', None)
-        position = job.get('beruf', job.get('titel', None))
+        position = job.get('titel', job.get('beruf', None))
         location = job.get('arbeitsort', {}).get('ort', None)
         link = job.get('externeUrl', f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{ref_nr}")
         date_posted = job.get('aktuelleVeroeffentlichungsdatum', None)

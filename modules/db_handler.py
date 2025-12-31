@@ -1,6 +1,7 @@
 from pathlib import Path
 import sqlite3
 from typing import List
+from datetime import datetime
 
 
 # Path to database file 
@@ -20,7 +21,8 @@ def table_create():
         "location TEXT NOT NULL",
         "link TEXT NOT NULL UNIQUE",
         "date_posted TEXT NOT NULL",
-        "status TEXT NOT NULL DEFAULT 'fetched'"       
+        "status TEXT NOT NULL DEFAULT 'fetched'",
+        "last_update TEXT"   
    )
     fields = ",".join(fieldslist)
     cur.execute(f"{command} {tablename} ({fields})")
@@ -88,7 +90,8 @@ def update_status(internship_id: int, new_status: str) -> None:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute("UPDATE internships SET status=? WHERE id=?", (new_status, internship_id))
+            current_date = datetime.now() 
+            cur.execute("UPDATE internships SET status=?, last_update=? WHERE id=?", (new_status, current_date.date(), internship_id))
             conn.commit()
     except sqlite3.OperationalError as e:
         print(e)

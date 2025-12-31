@@ -136,10 +136,11 @@ class InternshipCLI:
         table.add_column("Link", justify="center", style="blue u")
         table.add_column("Date", justify="center")
         table.add_column("Status", justify="right")
+        table.add_column("Last update", justify="center")
 
         # print(data)
         for row in data:
-            id, company_name, position, location, link, date_posted, status = row
+            id, company_name, position, location, link, date_posted, status, last_update = row
             # print(id)
             status_style = self.statuscolor[status]
 
@@ -150,7 +151,8 @@ class InternshipCLI:
                 location,
                 f"[link={link}]LINK[/link]",
                 date_posted,
-                f"[{status_style}]{status}[/{status_style}]"
+                f"[{status_style}]{status}[/{status_style}]",
+                last_update
             )
             
         return table

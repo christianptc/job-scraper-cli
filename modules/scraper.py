@@ -7,7 +7,7 @@ def get_jobs_raw():
 
     # Change SEARCH and LOCATION if you want to use this for your own job search
     params = {
-        "was": "Entwickler", # change "Entwickler" with what you want to search for
+        "was": "Werkstudent Software", # change "Entwickler" with what you want to search for
         "wo": "Kiel", # change "Kiel" with the region your prefered region
         "umkreis": 50,
         "page": 1,

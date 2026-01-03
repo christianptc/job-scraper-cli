@@ -9,12 +9,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Creates database file if not exists
 DB_PATH = BASE_DIR / "internships.db"
 
+tablename = "internships"
+temptablename = "scraped_internships"
+settings_table_name = "settings"
 def table_create():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    tablename = "internships"
     command = "CREATE TABLE IF NOT EXISTS"
-    main_table_columns = (
+    table_columns = (
         "id INTEGER NOT NULL PRIMARY KEY",
         "company_name TEXT NOT NULL",
         "position TEXT NOT NULL",
@@ -24,7 +26,14 @@ def table_create():
         "status TEXT NOT NULL DEFAULT 'fetched'",
         "last_update TEXT"   
    )
-    settings_table_name = "settings"
+    temp_columns = (
+        "id INTEGER NOT NULL PRIMARY KEY",
+        "company_name TEXT NOT NULL",
+        "position TEXT NOT NULL",
+        "location TEXT NOT NULL",
+        "link TEXT NOT NULL UNIQUE",
+        "date_posted TEXT NOT NULL",  
+   )
     user_settings = (
         "search TEXT",
         "ort TEXT",
@@ -33,11 +42,14 @@ def table_create():
    )
     insert_default_settigs = f"INSERT INTO {settings_table_name}(search, ort, umkreis, search_amount) VALUES(?, ?, ?, ?)"
     default_settings = ("Softwareentwickler", "Kiel", "25", "20")
-    fields = ",".join(main_table_columns)
+    fields = ",".join(table_columns)
+    tempfields = ",".join(temp_columns)
     settings = ",".join(user_settings)
     
+    #creates if not exists main table where all user prefered jobs
     cur.execute(f"{command} {tablename} ({fields})")
-
+    #creates if not exists temp table to show all scraped jobs
+    cur.execute(f"{command} {temptablename} ({tempfields})")
     # create settings table + add default data
     cur.execute(f"{command} {settings_table_name} ({settings})")
     cur.execute(f"SELECT count(*) FROM {settings_table_name}")
@@ -52,7 +64,7 @@ def update_check():
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute("SELECT MAX(id) FROM internships")
+            cur.execute(f"SELECT MAX(id) FROM {tablename}")
             maxID = cur.fetchone()[0]
             if maxID is not None:
                 return maxID
@@ -65,38 +77,95 @@ def add_internship(company_name, position, location, link, date_posted) -> bool:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute("SELECT MAX(id) FROM internships")
+            cur.execute(f"SELECT MAX(id) FROM {tablename}")
             maxID = cur.fetchone()[0]
             if maxID is not None:
                 idCount = maxID + 1
             else:
                 idCount = 1
             # print(f"idcount == {idCount}")
-            sql = "INSERT INTO internships(id, company_name, position, location, link, date_posted) VALUES(?, ?, ?, ?, ?, ?)"
+            sql = f"INSERT INTO {tablename}(id, company_name, position, location, link, date_posted) VALUES(?, ?, ?, ?, ?, ?)"
             data = (idCount, company_name, position, location, link, date_posted)
+            cur.execute(sql, data)
+            conn.commit()
+            return True, idCount
+    except sqlite3.Error as e:
+        # print(f"Error:{e}")
+        return False, 0
+
+def scrape_internship(company_name, position, location, link, date_posted) -> bool:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT MAX(id) FROM {temptablename}")
+            maxID = cur.fetchone()[0]
+            if maxID is not None:
+                tempIDcount = maxID + 1
+            else:
+                tempIDcount = 1
+            # print(f"idcount == {idCount}")
+            sql = f"INSERT INTO {temptablename}(id, company_name, position, location, link, date_posted) VALUES(?, ?, ?, ?, ?, ?)"
+            data = (tempIDcount, company_name, position, location, link, date_posted)
             cur.execute(sql, data)
             conn.commit()
             return True
     except sqlite3.Error as e:
         # print(f"Error:{e}")
         return False
+def move_internship(targetID) -> bool:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            # cur.execute('SELECT * FROM internships'))
+            cur.execute(f"SELECT MAX(id) FROM {temptablename}")
+            maxtempID = cur.fetchone()[0]
+
+            if maxtempID is not None:
+
+                if int(maxtempID) < int(targetID):
+                    return False, 0
+                
+                cur.execute(f'SELECT * FROM {temptablename} WHERE id =?', (targetID,))
+
+                id, company_name, position, location, link, date_posted = cur.fetchone()
+
+                check, id = add_internship(company_name, position, location, link, date_posted)
+                if check:
+                    return True, id
+            
+            return False, 0
+    except sqlite3.OperationalError as e:
+        print(e)
+        return False, 0
 
 def get_all_internships() -> List[tuple]:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute('SELECT * FROM internships ORDER BY date_posted DESC')
+            cur.execute(f'SELECT * FROM {tablename} ORDER BY date_posted DESC')
             rowData: List[tuple] = cur.fetchall()
 
             return rowData, None
     except sqlite3.Error as e:
         return [], e
 
+def get_all_scrapes() -> List[tuple]:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(f'SELECT * FROM {temptablename} ORDER BY date_posted DESC')
+            rowData: List[tuple] = cur.fetchall()
+            if rowData == []:
+                return [None], None
+            return rowData, None
+    except sqlite3.Error as e:
+        return [None], e
+
 def get_all_settings() -> List[tuple]:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute('SELECT * FROM settings')
+            cur.execute(f'SELECT * FROM {settings_table_name}')
             rowData: tuple = cur.fetchone()
 
             return rowData, None
@@ -108,7 +177,7 @@ def get_internship_by_id(targetID) -> tuple:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
             # cur.execute('SELECT * FROM internships')
-            cur.execute('SELECT * FROM internships WHERE id =?', (targetID,))
+            cur.execute(f'SELECT * FROM {tablename} WHERE id =?', (targetID,))
             rowData: tuple = cur.fetchone()
             return [rowData], None
     except sqlite3.OperationalError as e:
@@ -120,21 +189,32 @@ def update_status(internship_id: int, new_status: str) -> None:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
             current_date = datetime.now() 
-            cur.execute("UPDATE internships SET status=?, last_update=? WHERE id=?", (new_status, current_date.date(), internship_id))
+            cur.execute(f"UPDATE {tablename} SET status=?, last_update=? WHERE id=?", (new_status, current_date.date(), internship_id))
             conn.commit()
     except sqlite3.OperationalError as e:
         print(e)
         return
 
-def update_setting(setting: str, new_setting: str | int):
+def update_setting(setting: str, new_setting: str | int) -> bool:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute(f"UPDATE settings SET {setting}=?", (new_setting,))
+            cur.execute(f"UPDATE {settings_table_name} SET {setting}=?", (new_setting,))
             return True
     except sqlite3.OperationalError as e:
         print(e)
         return False
 
+def clear_temp_database():
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(f"DELETE FROM {temptablename}")
+            return True
+    except sqlite3.OperationalError as e:
+        print(e)
+        return False
 # add_internship()
 # print("added")
+
+# move_internship(1)

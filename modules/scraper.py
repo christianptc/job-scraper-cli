@@ -29,7 +29,7 @@ def get_jobs_raw(search, ort, umkreis, amount):
         link = job.get('externeUrl', f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{ref_nr}")
         date_posted = job.get('aktuelleVeroeffentlichungsdatum', None)
         
-        check = db_handler.add_internship(company_name, position, location, link, date_posted)
+        check = db_handler.scrape_internship(company_name, position, location, link, date_posted)
         if check:
             total_new_jobs += 1
 

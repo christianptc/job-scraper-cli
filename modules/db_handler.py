@@ -14,7 +14,7 @@ def table_create():
     cur = conn.cursor()
     tablename = "internships"
     command = "CREATE TABLE IF NOT EXISTS"
-    fieldslist = (
+    main_table_columns = (
         "id INTEGER NOT NULL PRIMARY KEY",
         "company_name TEXT NOT NULL",
         "position TEXT NOT NULL",
@@ -24,8 +24,27 @@ def table_create():
         "status TEXT NOT NULL DEFAULT 'fetched'",
         "last_update TEXT"   
    )
-    fields = ",".join(fieldslist)
+    settings_table_name = "settings"
+    user_settings = (
+        "search TEXT",
+        "ort TEXT",
+        "umkreis INTEGER",
+        "search_amount INTEGER"
+   )
+    insert_default_settigs = f"INSERT INTO {settings_table_name}(search, ort, umkreis, search_amount) VALUES(?, ?, ?, ?)"
+    default_settings = ("Softwareentwickler", "Kiel", "25", "20")
+    fields = ",".join(main_table_columns)
+    settings = ",".join(user_settings)
+    
     cur.execute(f"{command} {tablename} ({fields})")
+
+    # create settings table + add default data
+    cur.execute(f"{command} {settings_table_name} ({settings})")
+    cur.execute(f"SELECT count(*) FROM {settings_table_name}")
+    count = cur.fetchone()[0]
+    # print(count)
+    if count == 0:
+        cur.execute(insert_default_settigs, default_settings)
     conn.commit()
     conn.close()
 
@@ -73,6 +92,16 @@ def get_all_internships() -> List[tuple]:
     except sqlite3.Error as e:
         return [], e
 
+def get_all_settings() -> List[tuple]:
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute('SELECT * FROM settings')
+            rowData: tuple = cur.fetchone()
+
+            return rowData, None
+    except sqlite3.Error as e:
+        return [], e
 
 def get_internship_by_id(targetID) -> tuple:
     try:
@@ -96,6 +125,16 @@ def update_status(internship_id: int, new_status: str) -> None:
     except sqlite3.OperationalError as e:
         print(e)
         return
+
+def update_setting(setting: str, new_setting: str | int):
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(f"UPDATE settings SET {setting}=?", (new_setting,))
+            return True
+    except sqlite3.OperationalError as e:
+        print(e)
+        return False
 
 # add_internship()
 # print("added")

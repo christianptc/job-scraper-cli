@@ -19,6 +19,7 @@ class InternshipCLI:
             "list": self.handle_list,
             "update": self.handle_update,
             "scrape": self.handle_scrape,
+            "settings": self.manage_settings,
             "quit": self.handle_quit,
         }
         self.statuscolor: Dict[str, str] = {
@@ -92,7 +93,10 @@ class InternshipCLI:
         
         target = args[0]
 
-        if target == ".":
+        if target == ",":
+            data, error = db_handler.get_all_settings()
+            self.console.print(data)
+        elif target == ".":
             # Fetch data
             internships, error = db_handler.get_all_internships()
 
@@ -189,18 +193,50 @@ class InternshipCLI:
     
     def handle_scrape(self, args: List[str]):
         self.console.print("Starting scraper..", style="cyan")
-        
-        found_jobs, new_jobs = scraper.get_jobs_raw()
+
+        search, ort, umkreis, search_amount = db_handler.get_all_settings()[0]
+
+        found_jobs, new_jobs = scraper.get_jobs_raw(search, ort, umkreis, search_amount)
 
         if found_jobs > 0:
             self.console.print(f"Found {found_jobs} jobs -- {new_jobs} were added to the database ", style="green")
         else:
-            self.console.print(f"No jobs were found -- try again later..", style="green")
+            self.console.print(f"No jobs were found -- try again later or try to update search settings by using [white]'settings .'[/white]..", style="red")
 
 
         # self.console.print(f"Successfully fetched {success} internships.", style="bold green")
     
+    def manage_settings(self, args: List[str]):
+        valid_settings: Dict[str, str] = {
+            'search':'search',
+            'region':'ort',
+            'radius':'umkreis',
+            'amount':'search_amount'
+        }
 
+        if len(args) == 1 and args[0] == '.':
+            self.console.print("Current SEARCH settings:", style="bold u bright_yellow")
+            search, ort, umkreis, search_amount = db_handler.get_all_settings()[0]
+            self.console.print(f"[yellow]{'Search:':<7}[/yellow] {search}")
+            self.console.print(f"[yellow]{'Region:':<7}[/yellow] {ort}")
+            self.console.print(f"[yellow]{'Radius:':<7}[/yellow] {umkreis} [yellow](in km)[/yellow]")
+            self.console.print(f"[yellow]{'Amount:':<7}[/yellow] {search_amount} [yellow](Maximum amount of how many jobs can get extracter - the higher the amount, the older the posts will get scraped)[/yellow]")
+            self.console.print()
+            self.console.print("Use [white]'settings  <search/region/radius/amount> <new_value>'[/white] to update each setting", style="bold red")
+        
+        else: 
+            setting, new_setting = args[0], " ".join(args[1:])
+            if setting not in valid_settings:
+                self.console.print(f"Usage: [white]'settings .' [red]or[/red] 'settings  <{'/'.join(valid_settings)}> <new_value>'[/white]", style="red")
+                return
+            
+            valid_update = db_handler.update_setting(valid_settings[setting.lower()], new_setting)
+            if valid_update:
+                self.console.print(f"Successfully updated [white]{setting}[/white] to [white]{new_setting}[/white]",style="green b")
+            else:
+                self.console.print(f"Something went wrong, try again", style="red b")
+            return
+        
 if __name__ == "__main__":
     app = InternshipCLI()
     app.start()

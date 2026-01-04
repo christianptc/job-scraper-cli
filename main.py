@@ -20,7 +20,9 @@ class InternshipCLI:
             "move": self.handle_move,
             "update": self.handle_update,
             "scrape": self.handle_scrape,
-            "settings": self.manage_settings,
+            "settings": self.handle_settings,
+            "clear": self.handle_clear,
+            "delete": self.handle_delete,
             "quit": self.handle_quit
         }
         self.statuscolor: Dict[str, str] = {
@@ -68,8 +70,6 @@ class InternshipCLI:
     
     def handle_quit(self, args: List[str] = None):
         # Exits the program
-        db_handler.clear_temp_database()
-        self.console.print("Cleared the temporary table", style="white")
         self.console.print("Exiting program..", style="red bold u")
         sys.exit()
 
@@ -80,6 +80,7 @@ class InternshipCLI:
         help_text = [
             ("[white]'list .'[/white]", "[yellow]lists all interships scraped[yellow]"),
             ("[white]'move <id>'[/white]", "[yellow]moves and saves intership with <id> in main database[yellow]"),
+            ("[white]'clear'[/white]", "[yellow]clears the whole temporary database[yellow]"),
             ("[white]'list main'[/white]", "[yellow]lists all interships saved in main database[yellow]"),
             ("[white]'list <id>'[/white]", "[yellow]gets information about specific internship from main database[yellow]"),
             ("[white]'update <id> <new_status>'[/white]", "[yellow]updates current status of specific internship[yellow]"),
@@ -101,7 +102,7 @@ class InternshipCLI:
         target = args[0]
         if target == ".":
             internships, error = db_handler.get_all_scrapes()
-            print(internships)
+            # print(internships)
             if error is not None:
                 self.console.print(f"Error: {error}")
                 return
@@ -183,9 +184,9 @@ class InternshipCLI:
             return table
         elif len(data[0]) == 6:
             for row in data:
-                print("b")
+                # print("b")
                 id, company_name, position, location, link, date_posted = row
-                print("c")
+                # print("c")
                 table.add_row(
                     str(id),
                     company_name,
@@ -243,13 +244,16 @@ class InternshipCLI:
 
         # self.console.print(f"Successfully fetched {success} internships.", style="bold green")
     
-    def manage_settings(self, args: List[str]):
+    def handle_settings(self, args: List[str]):
         valid_settings: Dict[str, str] = {
             'search':'search',
             'region':'ort',
             'radius':'umkreis',
             'amount':'search_amount'
         }
+        if not args:
+            self.console.print(f"Usage: [white]'settings .' [red]or[/red] 'settings  <{'/'.join(valid_settings)}> <new_value>'[/white]", style="red")
+            return
 
         if len(args) == 1 and args[0] == '.':
             self.console.print("Current SEARCH settings:", style="bold u bright_yellow")
@@ -274,7 +278,7 @@ class InternshipCLI:
                 self.console.print(f"Something went wrong, try again", style="red b")
             return
     
-    def handle_move(self, args: List[str]):
+    def handle_move(self, args: List[str]) -> None:
         if not args or len(args) > 1:
             self.console.print(f"Usage: [white]'move <id>'[/white]", style="red")
             return
@@ -287,7 +291,35 @@ class InternshipCLI:
             self.console.print(f"Successfully moved internship with ID [white]{target}[/white] to main database, it's new ID is [white]{new_id}[/white]", style="green b")
         else:
             self.console.print(f"Internship with ID [white]{target}[/white] was not able to get moved (either the id is wrond or it already is stored in main database).", style="red b")
+        return
+    
+    
+    def handle_clear(self, args: List[str]) -> None:
+        try:
+            if db_handler.clear_temp_database():
+                self.console.print("Cleared the temporary table", style="green")
+            else:
+                self.console.print("Something went wrong, try again later", style="red b")
+            return
+        except Exception as e:
+            print(f"Error: {e}")
+            return
         
+    def handle_delete(self, args:List[str]) -> None:
+        try:
+            if not args or len(args) > 1:
+                self.console.print(f"Usage: [white]'delete <id>'[/white]", style="red")
+
+            targetID = args[0]
+
+            if db_handler.delete_internship(targetID):
+                self.console.print(f"Deleted internship with ID {targetID} from main database.", style="green")
+            else:
+                self.console.print(f"Something went wrong with deleting internship with id {targetID}, try again later", style="red b")
+            return
+        except Exception as e:
+            print(f"Error: {e}")
+            return
 if __name__ == "__main__":
     app = InternshipCLI()
     app.start()

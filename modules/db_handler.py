@@ -147,7 +147,7 @@ def get_all_scrapes() -> List[tuple] | None:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute(f'SELECT * FROM {temptablename} ORDER BY date_posted DESC')
+            cur.execute(f'SELECT * FROM {temptablename} ORDER BY date_posted ASC')
             rowData: List[tuple] = cur.fetchall()
             if rowData == []:
                 return [None], None

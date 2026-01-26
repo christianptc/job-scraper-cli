@@ -36,7 +36,6 @@ This is a **finished personal project**, created with the intent of learning and
 It scrapes jobs from **arbeitsagentur.de** using specific search filters and stores them in a **SQLite3 database**.  
 You can also **track the status of each job position** by manually updating its status.  
 
-Feel free to use this for your own job search by changing the search filters in:  
-`modules/scraper.py` → **line 10 + 11**  
+Feel free to use this for your own job search
 
 ---

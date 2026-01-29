@@ -43,7 +43,6 @@ class InternshipCLI:
                 "Welcome to Internship Tracker, type [white]'help'[/white] for commands ([white]'quit'[/white] to stop)",
                 style="bold yellow"
             )
-        
         while True:
             try:
                 user_input = input(">>> ").strip()
@@ -101,7 +100,7 @@ class InternshipCLI:
         
         target = args[0]
         if target == ".":
-            internships, error = db_handler.get_all_scrapes()
+            internships, error = db_handler.get_internships(db_handler.temptablename)
             # print(internships)
             if error is not None:
                 self.console.print(f"Error: {error}")
@@ -118,7 +117,7 @@ class InternshipCLI:
 
         elif target == "main":
             # Fetch data
-            internships, error = db_handler.get_all_internships()
+            internships, error = db_handler.get_internships(db_handler.tablename)
 
             if error is not None:
                 self.console.print(f"Error: {error}")

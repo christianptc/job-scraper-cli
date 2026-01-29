@@ -132,28 +132,16 @@ def move_internship(targetID) -> bool | int:
         print(f"Error:{e}")
         return False, 0
 
-def get_all_internships() -> List[tuple] | None:
+def get_internships(table) -> List[tuple] | None:
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cur = conn.cursor()
-            cur.execute(f'SELECT * FROM {tablename} ORDER BY date_posted DESC')
+            cur.execute(f'SELECT * FROM {table} ORDER BY date_posted ASC')
             rowData: List[tuple] = cur.fetchall()
 
             return rowData, None
     except sqlite3.Error as e:
         return [], e
-
-def get_all_scrapes() -> List[tuple] | None:
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            cur = conn.cursor()
-            cur.execute(f'SELECT * FROM {temptablename} ORDER BY date_posted ASC')
-            rowData: List[tuple] = cur.fetchall()
-            if rowData == []:
-                return [None], None
-            return rowData, None
-    except sqlite3.Error as e:
-        return [None], e
 
 def get_all_settings() -> List[tuple] | None:
     try:
@@ -218,8 +206,3 @@ def delete_internship(targetID) -> bool:
     except sqlite3.OperationalError as e:
         print(f"Error:{e}")
         return False
-
-# add_internship()
-# print("added")
-
-# move_internship(1)
